@@ -10,10 +10,12 @@ import (
 
 var (
 	AppDir string
-	Config ConfigContainer
 )
 
-type ConfigContainer map[string]Output
+type Config struct {
+	Css map[string]Output
+	Js  map[string]Output
+}
 
 type Output struct {
 	// Location inside the AppDirectory
@@ -28,39 +30,27 @@ func (o Output) Path(path string) string {
 	return filepath.Join(AppDir, o.Root, path)
 }
 
-func loadConfig() error {
+// find conf/pipeline.conf and load it
+func loadConfig() (*Config, error) {
 	AppDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	confFile := filepath.Join(AppDir, "conf", "pipeline.json")
-	beego.Debug("Found pipeline config file: ", confFile)
+	f := filepath.Join(AppDir, "conf", "pipeline.json")
+	beego.Debug("Found pipeline config file: ", f)
 
-	data, err := ioutil.ReadFile(confFile)
+	data, err := ioutil.ReadFile(f)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = json.Unmarshal(data, &Config)
+	config := &Config{}
+	err = json.Unmarshal(data, config)
 	if err != nil {
-		return err
-	}
-	beego.Debug("Loaded pipeline data", Config)
-	return nil
-}
-
-// find conf/pipeline.conf and load it
-// TODO: handle any errors that can be handled different
-func appStartHook() error {
-	err := loadConfig()
-	if err != nil {
-		beego.Error(err)
+		return nil, err
 	}
 
-	return nil
-}
-
-func init() {
-	beego.AddAPPStartHook(appStartHook)
+	beego.Debug("Loaded pipeline data", *config)
+	return config, nil
 }
