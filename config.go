@@ -2,14 +2,15 @@ package pipeline
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/astaxie/beego"
+	"github.com/astaxie/beego/utils"
 	"io/ioutil"
-	"os"
 	"path/filepath"
 )
 
 var (
-	AppDir string
+	fp FilePath
 )
 
 type Config struct {
@@ -18,29 +19,46 @@ type Config struct {
 }
 
 type Output struct {
-	// Location inside the AppDirectory
+	// Location inside the AppPath directory
 	// specify this in case the root of static folder is not the default "/static"
 	Root    string `json:",omitempty"`
 	Sources []string
 	Output  string
 }
 
-// Return absolute path for provided path, prepending AppDir and Root
+type ConfigPather interface {
+	// returns file path to the conf file
+	Path() (string, error)
+}
+
+type FilePath string
+
+func (fp FilePath) Path() (string, error) {
+	fn := filepath.Join(beego.AppPath, "conf", "pipeline.json")
+	if !utils.FileExists(fn) {
+		beego.Debug("pipeline.json not found.")
+		return "", errors.New("File does not exist")
+	}
+	return fn, nil
+}
+
+// Return absolute path for provided path, prepending AppPath and Root
 func (o Output) Path(path string) string {
-	return filepath.Join(AppDir, o.Root, path)
+	return filepath.Join(beego.AppPath, o.Root, path)
 }
 
 // find conf/pipeline.conf and load it
-func loadConfig() (*Config, error) {
-	AppDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		return nil, err
+func loadConfig(cp ConfigPather) (*Config, error) {
+	if cp == nil {
+		cp = fp
 	}
+	path, err := cp.Path()
+	if err != nil {
+		return nil, nil
+	}
+	beego.Debug("Found pipeline config file: ", path)
 
-	f := filepath.Join(AppDir, "conf", "pipeline.json")
-	beego.Debug("Found pipeline config file: ", f)
-
-	data, err := ioutil.ReadFile(f)
+	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}

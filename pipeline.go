@@ -18,7 +18,7 @@ type Pipeline struct {
 
 // TODO: handle any errors that can be handled different
 func appStartHook() error {
-	config, err := loadConfig()
+	config, err := loadConfig(nil)
 	if err != nil {
 		beego.Error(err)
 	}
