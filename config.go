@@ -14,16 +14,25 @@ var (
 )
 
 type Config struct {
-	Css map[string]Output
-	Js  map[string]Output
+	Css Outputs
+	Js  Outputs
 }
+
+type Outputs map[string]Output
+
+type Paths []string
 
 type Output struct {
 	// Location inside the AppPath directory
 	// specify this in case the root of static folder is not the default "/static"
 	Root    string `json:",omitempty"`
-	Sources []string
+	Sources Paths
 	Output  string
+}
+
+// Return absolute path for provided path, prepending AppPath and Root
+func (o Output) Path(path string) string {
+	return filepath.Join(beego.AppPath, o.Root, path)
 }
 
 type ConfigPather interface {
@@ -40,11 +49,6 @@ func (fp FilePath) Path() (string, error) {
 		return "", errors.New("File does not exist")
 	}
 	return fn, nil
-}
-
-// Return absolute path for provided path, prepending AppPath and Root
-func (o Output) Path(path string) string {
-	return filepath.Join(beego.AppPath, o.Root, path)
 }
 
 // find conf/pipeline.conf and load it
