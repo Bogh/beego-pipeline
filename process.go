@@ -5,7 +5,6 @@ import (
 	"github.com/astaxie/beego"
 	"io"
 	"os"
-	"os/exec"
 )
 
 type Processor struct {
@@ -35,9 +34,14 @@ func (p *Processor) Process() error {
 
 // Accepts an io.Writer and returns an io.Reader
 func (p *Processor) Compress(output Output) error {
+	compressor, ok := compressors[p.t]
+	if !ok {
+		beego.Debug(compressors)
+		return fmt.Errorf("Compressor not found for type: %s", p.t)
+	}
+
 	// normalized paths
 	sources, _ := output.Paths()
-	beego.Debug("Found paths: ", sources, " for output ", output.Output)
 
 	files := make([]io.Reader, len(sources))
 	for i, path := range sources {
@@ -45,49 +49,23 @@ func (p *Processor) Compress(output Output) error {
 		files[i] = io.Reader(f)
 		defer f.Close()
 	}
-	r := io.MultiReader(files...)
+	done := make(chan bool)
+
+	r, err := compressor.Compress(done, io.MultiReader(files...))
+	if err != nil {
+		beego.Error(err)
+		return err
+	}
 
 	// output File
-	oFile, _ := os.OpenFile(output.NOutput(), os.O_WRONLY|os.O_CREATE, 0644)
-	defer oFile.Close()
-
-	// start command and pipe the data through it
-	cmd := exec.Command("yuglify", "--terminal", "--type css")
-	stdin, err := cmd.StdinPipe()
-	if err != nil {
-		panic(err)
-	}
-	defer stdin.Close()
-
-	// write data to command
-	go func() {
-		io.Copy(stdin, r)
-	}()
-
-	// read from stdout and write to file
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		panic(err)
-	}
-	defer stdout.Close()
 
 	go func() {
-		io.Copy(os.Stdout, stdout)
+		defer r.Close()
+		oFile, _ := os.OpenFile(output.NOutput(), os.O_WRONLY|os.O_CREATE, 0644)
+		defer oFile.Close()
+		n, _ := io.Copy(oFile, r)
+		beego.Debug("Bytes written to file: ", n)
+		<-done
 	}()
-
-	// stderr, err := cmd.StderrPipe()
-	// if err != nil {
-	// 	panic(err)
-	// }
-
-	// go func() {
-	//        ioutil.ReadAll(cmd.Stderr)
-	// }()
-
-	err = cmd.Run()
-	if err != nil {
-		beego.Error(fmt.Sprintf("%T", err))
-		panic(err)
-	}
 	return nil
 }

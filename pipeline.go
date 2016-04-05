@@ -2,6 +2,7 @@ package pipeline
 
 import (
 	"github.com/astaxie/beego"
+	"io"
 )
 
 var (
@@ -12,7 +13,7 @@ var (
 type Compressor interface {
 	// Should compress and concatenate the file in paths and save them in the
 	// output
-	Compress(paths Paths, output string) error
+	Compress(done chan bool, r io.Reader) (io.ReadCloser, error)
 }
 
 // There can be only one compressor per type of asset
