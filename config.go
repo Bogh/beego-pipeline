@@ -19,44 +19,6 @@ type Config struct {
 	Js  Outputs
 }
 
-type Outputs map[string]Output
-
-type Paths []string
-
-type Output struct {
-	// Location inside the AppPath directory
-	// specify this in case the root of static folder is not the default "/static"
-	Root    string `json:",omitempty"`
-	Sources Paths
-	Output  string
-}
-
-// Return absolute path for provided path, prepending AppPath and Root
-func (o Output) Path(path string) string {
-	root := o.Root
-	if root == "" {
-		root = "/static"
-	}
-	return filepath.Join(beego.AppPath, root, path)
-}
-
-func (o Output) Paths() (Paths, error) {
-	p := Paths{}
-	for _, pattern := range o.Sources {
-		matches, err := filepath.Glob(o.Path(pattern))
-		if err != nil {
-			return p, err
-		}
-		p = append(p, matches...)
-	}
-	return p, nil
-}
-
-// Normalized Output
-func (o Output) NOutput() string {
-	return o.Path(o.Output)
-}
-
 type ConfigPather interface {
 	// returns file path to the conf file
 	Path() (string, error)
