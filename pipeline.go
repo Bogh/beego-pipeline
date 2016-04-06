@@ -18,20 +18,19 @@ var (
 
 type Asset int
 
-type Typer interface {
-	// Return the type of asset that can be handled
-	Type() Asset
-}
-
 type Matcher interface {
 	// Return true if it can handle the file
-	Match(string) bool
+	Match(Asset, string) bool
+}
+
+type ReadNotifier struct {
+	io.ReadCloser
+	notify chan bool
 }
 
 type Compiler interface {
-	Typer
 	Matcher
-	Compile() (chan bool, chan error)
+	Compile(io.Reader) (ReadNotifier, chan error)
 }
 
 // Define compressor interface
@@ -40,7 +39,7 @@ type Compressor interface {
 	Matcher
 	// Should compress and concatenate the file in paths and save them in the
 	// output
-	Compress(done chan bool, r io.Reader) (io.ReadCloser, error)
+	Compress(io.Reader) (ReadNotifier, error)
 }
 
 type Outputs map[string]Output

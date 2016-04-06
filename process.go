@@ -2,11 +2,11 @@ package pipeline
 
 type Processor struct {
 	// type of asset
-	t       string
+	t       Asset
 	outputs Outputs
 }
 
-func NewProcessor(t string, outputs Outputs) *Processor {
+func NewProcessor(t Asset, outputs Outputs) *Processor {
 	return &Processor{t, outputs}
 }
 
