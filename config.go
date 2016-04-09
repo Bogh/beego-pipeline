@@ -10,16 +10,17 @@ import (
 )
 
 var (
-	fp     FilePath
-	config *Config
+	fp FilePath
 )
 
-type Config struct {
+type Config map[Asset]Outputs
+
+type config struct {
 	Css Outputs
 	Js  Outputs
 }
 
-type ConfigPather interface {
+type ConfigPath interface {
 	// returns file path to the conf file
 	Path() (string, error)
 }
@@ -36,13 +37,13 @@ func (fp FilePath) Path() (string, error) {
 }
 
 // find conf/pipeline.conf and load it
-func loadConfig(cp ConfigPather) error {
+func loadConfig(cp ConfigPath) (Config, error) {
 	if cp == nil {
 		cp = fp
 	}
 	path, err := cp.Path()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	beego.Debug("Found pipeline config file: ", path)
 
@@ -51,12 +52,15 @@ func loadConfig(cp ConfigPather) error {
 		return err
 	}
 
-	config = &Config{}
-	err = json.Unmarshal(data, config)
+	c = config{}
+	err = json.Unmarshal(data, &c)
 	if err != nil {
 		return err
 	}
 
 	beego.Debug("Loaded pipeline data", *config)
-	return nil
+	return nil, Config{
+		AssetCss: c.Css,
+		AssetJs: c.Js
+	}
 }

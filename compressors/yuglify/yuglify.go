@@ -46,10 +46,6 @@ func (y *YuglifyCompressor) Compress(done chan bool, r io.Reader) (io.ReadCloser
 	// return stdout, nil
 }
 
-func (y *YuglifyCompressor) Type() pipeline.Asset {
-	return y.asset
-}
-
 func (y *YuglifyCompressor) Match(file string) bool {
 	return true
 }

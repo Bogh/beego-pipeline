@@ -1,13 +1,32 @@
 package pipeline
 
+func NewProcessors(l int) Processors {
+	return make(Processors, l)
+}
+
+type Processors []Processor
+
+func (p *Processors) Process() error {
+	// parallelize processor run
+	for processor := range p {
+		processor.Process()
+	}
+
+	return nil
+}
+
+func NewProcessor(asset Asset, outputs Outputs) *Processor {
+	return &Processor{asset, outputs}
+}
+
 type Processor struct {
 	// type of asset
-	t       Asset
+	Asset   Asset
 	outputs Outputs
 }
 
-func NewProcessor(t Asset, outputs Outputs) *Processor {
-	return &Processor{t, outputs}
+func (p *Processor) Process() error {
+	return nil
 }
 
 // func (p *Processor) Process() error {

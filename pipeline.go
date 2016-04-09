@@ -25,7 +25,9 @@ type Matcher interface {
 
 type ReadNotifier struct {
 	io.ReadCloser
-	notify chan bool
+
+	// notify on this channel when the work is done
+	Notify chan bool
 }
 
 type Compiler interface {
@@ -35,7 +37,6 @@ type Compiler interface {
 
 // Define compressor interface
 type Compressor interface {
-	Typer
 	Matcher
 	// Should compress and concatenate the file in paths and save them in the
 	// output
@@ -92,9 +93,15 @@ func AddCompiler(c Compiler) {
 
 // Run compilers and compressors in this pipeline
 // TODO: make this concurrent using context
-func Execute() error {
-	// compress all in the output file
-	beego.Debug("Processing CSS")
+func Execute(config Config) error {
+	processors := NewProcessors(len(config))
+
+	for asset, outputs := range config {
+		processors = append(processors, NewProcessor(asset, outputs))
+	}
+
+	processors.Process()
+
 	// p := NewProcessor("css", config.Css)
 	// err := p.Process()
 	// if err != nil {
@@ -106,22 +113,18 @@ func Execute() error {
 
 // TODO: handle any errors that can be handled different
 func appStartHook() error {
-	err := loadConfig(nil)
+	config, err := loadConfig(nil)
 	if err != nil {
 		beego.Error(err)
 		return err
 	}
 
 	// execute pipeline
-	err = Execute()
+	err = Execute(config)
 	if err != nil {
 		return err
 	}
 
-	// pipeline, err = NewPipeline(config)
-	// if err != nil {
-	// 	return err
-	// }
 	return nil
 }
 
