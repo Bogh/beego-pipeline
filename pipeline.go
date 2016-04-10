@@ -43,11 +43,9 @@ type Compressor interface {
 	Compress(io.Reader) (ReadNotifier, error)
 }
 
-type Outputs map[string]Output
+type Collection map[Asset]Group
 
-type Paths []string
-
-type Output struct {
+type Group struct {
 	// Location inside the AppPath directory
 	// specify this in case the root of static folder is not the default "/static"
 	Root    string `json:",omitempty"`
@@ -56,7 +54,7 @@ type Output struct {
 }
 
 // Return absolute path for provided path, prepending AppPath and Root
-func (o *Output) Path(path string) string {
+func (o *Group) Path(path string) string {
 	root := o.Root
 	if root == "" {
 		root = "/static"
@@ -64,7 +62,7 @@ func (o *Output) Path(path string) string {
 	return filepath.Join(beego.AppPath, root, path)
 }
 
-func (o *Output) Paths() (Paths, error) {
+func (o *Group) Paths() (Paths, error) {
 	p := Paths{}
 	for _, pattern := range o.Sources {
 		matches, err := filepath.Glob(o.Path(pattern))
@@ -77,7 +75,7 @@ func (o *Output) Paths() (Paths, error) {
 }
 
 // Normalized Output
-func (o *Output) NOutput() string {
+func (o *Group) NOutput() string {
 	return o.Path(o.Output)
 }
 
