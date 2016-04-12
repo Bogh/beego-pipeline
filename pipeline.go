@@ -69,16 +69,26 @@ func (p *Processor) Process() error {
 			continue
 		}
 
-		go func(r *AutoCloseReader) {
-			oFile, _ := os.OpenFile(group.OutputPath(), os.O_WRONLY|os.O_CREATE, 0644)
-			defer oFile.Close()
-
-			n, _ := io.Copy(oFile, io.Reader(r))
-			beego.Debug("Bytes written to file: ", n)
-		}(r)
+		go p.WriteGroup(group.OutputPath(), r)
 	}
 
 	return nil
+}
+
+func (p *Processor) WriteGroup(path string, r *AutoCloseReader) {
+	oFile, err := os.Create(path)
+	if err != nil {
+		beego.Error(err)
+		return
+	}
+	defer oFile.Close()
+
+	_, err = io.Copy(oFile, io.Reader(r))
+	if err != nil {
+		beego.Error(err)
+		return
+	}
+	beego.Debug("Generated: ", path)
 }
 
 func (p *Processor) Compile(group Group) (io.Reader, error) {

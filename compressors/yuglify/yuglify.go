@@ -1,7 +1,6 @@
 package yuglify
 
 import (
-	"github.com/astaxie/beego"
 	"github.com/bogh/beego-pipeline"
 	"io"
 	"os/exec"
@@ -9,7 +8,12 @@ import (
 
 // TODO: allow for customization of command
 type YuglifyCompressor struct {
+	*pipeline.Executor
 	asset pipeline.Asset
+}
+
+func NewYuglifyCompressor(asset pipeline.Asset) *YuglifyCompressor {
+	return &YuglifyCompressor{pipeline.NewExecutor(), asset}
 }
 
 func (y *YuglifyCompressor) Match(pipeline.Asset) bool {
@@ -22,34 +26,17 @@ func (y *YuglifyCompressor) Compress(r io.Reader) (*pipeline.AutoCloseReader, er
 		"--terminal",
 		"--type", "css",
 	}
-	cmd := exec.Command("/usr/local/bin/yuglify", cmdArgs...)
-	// write data to command
-	stdin, err := cmd.StdinPipe()
+	stdout, err := y.Executor.Pipe(
+		exec.Command("/usr/local/bin/yuglify", cmdArgs...),
+		r,
+	)
 	if err != nil {
 		return nil, err
 	}
-
-	// read from stdout and write to file
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
-	defer stdin.Close()
-	n, _ := io.Copy(stdin, r)
-	beego.Debug("Bytes sent to stdin:", n)
-
-	go func() {
-		err = cmd.Run()
-		if err != nil {
-			beego.Error(err)
-		}
-	}()
-
 	return &pipeline.AutoCloseReader{stdout}, nil
 }
 
 func init() {
-	pipeline.RegisterCompressor(&YuglifyCompressor{pipeline.AssetCss})
-	pipeline.RegisterCompressor(&YuglifyCompressor{pipeline.AssetJs})
+	pipeline.RegisterCompressor(NewYuglifyCompressor(pipeline.AssetCss))
+	pipeline.RegisterCompressor(NewYuglifyCompressor(pipeline.AssetJs))
 }
