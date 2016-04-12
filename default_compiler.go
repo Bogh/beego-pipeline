@@ -2,7 +2,6 @@ package pipeline
 
 import (
 	"github.com/astaxie/beego"
-	"io"
 	"os"
 )
 
@@ -16,7 +15,7 @@ func (r *NopCompiler) Match(asset Asset, filepath string) bool {
 	return true
 }
 
-func (r *NopCompiler) Compile(filepath string) (io.ReadCloser, error) {
+func (r *NopCompiler) Compile(filepath string) (*AutoCloseReader, error) {
 	// read the file and return an io
 	beego.Debug("Nop compiler: ", filepath)
 	f, err := os.Open(filepath)

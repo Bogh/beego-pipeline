@@ -24,7 +24,7 @@ type Asset int
 
 type Compiler interface {
 	Match(Asset, string) bool
-	Compile(string) (io.ReadCloser, error)
+	Compile(string) (*AutoCloseReader, error)
 }
 
 // Define compressor interface
@@ -37,16 +37,15 @@ type Compressor interface {
 
 // There can be only one compressor per type of asset
 // Receives type of compressor (css, js) and the Compressor interface
-func SetCompressor(c Compressor) {
+func RegisterCompressor(c Compressor) {
 	compressors = append(compressors, c)
 }
 
-func AddCompiler(c Compiler) {
+func RegisterCompiler(c Compiler) {
 	compilers = append(compilers, c)
 }
 
 type Processor struct {
-	// type of asset
 	Asset      Asset
 	Collection Collection
 }

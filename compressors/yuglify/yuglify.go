@@ -12,6 +12,10 @@ type YuglifyCompressor struct {
 	asset pipeline.Asset
 }
 
+func (y *YuglifyCompressor) Match(pipeline.Asset) bool {
+	return true
+}
+
 func (y *YuglifyCompressor) Compress(r io.Reader) (*pipeline.AutoCloseReader, error) {
 	// start command and pipe the data through it
 	cmdArgs := []string{
@@ -45,11 +49,7 @@ func (y *YuglifyCompressor) Compress(r io.Reader) (*pipeline.AutoCloseReader, er
 	return &pipeline.AutoCloseReader{stdout}, nil
 }
 
-func (y *YuglifyCompressor) Match(pipeline.Asset) bool {
-	return true
-}
-
 func init() {
-	pipeline.SetCompressor(&YuglifyCompressor{pipeline.AssetCss})
-	pipeline.SetCompressor(&YuglifyCompressor{pipeline.AssetJs})
+	pipeline.RegisterCompressor(&YuglifyCompressor{pipeline.AssetCss})
+	pipeline.RegisterCompressor(&YuglifyCompressor{pipeline.AssetJs})
 }
