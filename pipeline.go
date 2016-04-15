@@ -189,11 +189,7 @@ func appStartHook() error {
 	}
 
 	// execute pipeline
-	err = Execute(config)
-	if err != nil {
-		return err
-	}
-
+	go Execute(config)
 	return nil
 }
 
