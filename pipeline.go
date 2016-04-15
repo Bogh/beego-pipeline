@@ -24,7 +24,7 @@ type Asset int
 
 type Compiler interface {
 	Match(Asset, string) bool
-	Compile(string) (*AutoCloseReader, error)
+	Compile(string) (io.Reader, error)
 }
 
 // Define compressor interface
@@ -32,11 +32,9 @@ type Compressor interface {
 	Match(Asset) bool
 	// Should compress and concatenate the file in paths and save them in the
 	// output
-	Compress(io.Reader) (*AutoCloseReader, error)
+	Compress(io.Reader) (io.Reader, error)
 }
 
-// There can be only one compressor per type of asset
-// Receives type of compressor (css, js) and the Compressor interface
 func RegisterCompressor(c Compressor) {
 	compressors = append(compressors, c)
 }
@@ -75,7 +73,7 @@ func (p *Processor) Process() error {
 	return nil
 }
 
-func (p *Processor) WriteGroup(path string, r *AutoCloseReader) {
+func (p *Processor) WriteGroup(path string, r io.Reader) {
 	oFile, err := os.Create(path)
 	if err != nil {
 		beego.Error(err)
@@ -130,7 +128,7 @@ func (p *Processor) GetCompiler(path string) Compiler {
 }
 
 // Accepts an io.Writer and returns an io.Reader
-func (p *Processor) Compress(in io.Reader) (*AutoCloseReader, error) {
+func (p *Processor) Compress(in io.Reader) (io.Reader, error) {
 	compressor := p.GetCompressor()
 	if compressor == nil {
 		return nil, fmt.Errorf("Compressor not found for type: %s", p.GetAsset())

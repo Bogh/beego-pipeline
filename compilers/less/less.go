@@ -2,6 +2,7 @@ package less
 
 import (
 	"github.com/bogh/beego-pipeline"
+	"io"
 	"os/exec"
 	"strings"
 )
@@ -19,14 +20,10 @@ func (l *LessCompiler) Match(asset pipeline.Asset, filepath string) bool {
 		strings.HasSuffix(filepath, ".less")
 }
 
-func (l *LessCompiler) Compile(filepath string) (*pipeline.AutoCloseReader, error) {
+func (l *LessCompiler) Compile(filepath string) (io.Reader, error) {
 	// start command and pipe the data through it
 	cmd := exec.Command("/usr/local/bin/lessc", filepath)
-	stdout, err := l.Executor.Pipe(cmd, nil)
-	if err != nil {
-		return nil, err
-	}
-	return &pipeline.AutoCloseReader{stdout}, nil
+	return l.Executor.Pipe(cmd, nil)
 }
 
 func (l *LessCompiler) String() string {

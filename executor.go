@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"bytes"
 	"github.com/astaxie/beego"
 	"io"
 	"os/exec"
@@ -12,13 +13,7 @@ func NewExecutor() *Executor {
 	return &Executor{}
 }
 
-func (e *Executor) Pipe(cmd *exec.Cmd, r io.Reader) (out io.ReadCloser, err error) {
-	// read from stdout and write to file
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return nil, err
-	}
-
+func (e *Executor) Pipe(cmd *exec.Cmd, r io.Reader) (io.Reader, error) {
 	if r != nil {
 		stdin, err := cmd.StdinPipe()
 		if err != nil {
@@ -27,18 +22,19 @@ func (e *Executor) Pipe(cmd *exec.Cmd, r io.Reader) (out io.ReadCloser, err erro
 
 		go func(command string) {
 			defer stdin.Close()
-			_, err = io.Copy(stdin, r)
+			var buf bytes.Buffer
+			tr := io.TeeReader(r, &buf)
+			_, err = io.Copy(stdin, tr)
 			if err != nil {
 				beego.Error(command, err)
+				beego.Debug("Read data:", buf.String())
 			}
 		}(cmd.Path)
 	}
 
-	go func() {
-		err = cmd.Run()
-		if err != nil {
-			beego.Error(err)
-		}
-	}()
-	return stdout, nil
+	data, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(data), nil
 }

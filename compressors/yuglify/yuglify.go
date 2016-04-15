@@ -20,7 +20,7 @@ func (y *YuglifyCompressor) Match(pipeline.Asset) bool {
 	return true
 }
 
-func (y *YuglifyCompressor) Compress(r io.Reader) (*pipeline.AutoCloseReader, error) {
+func (y *YuglifyCompressor) Compress(r io.Reader) (io.Reader, error) {
 	// start command and pipe the data through it
 	cmdArgs := []string{
 		"--terminal",
@@ -33,7 +33,7 @@ func (y *YuglifyCompressor) Compress(r io.Reader) (*pipeline.AutoCloseReader, er
 	if err != nil {
 		return nil, err
 	}
-	return &pipeline.AutoCloseReader{stdout}, nil
+	return stdout, nil
 }
 
 func init() {
