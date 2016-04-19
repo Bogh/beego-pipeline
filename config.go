@@ -73,7 +73,7 @@ func (o *Group) OutputPath() string {
 }
 
 // find conf/pipeline.conf and load it
-func loadConfig(cp ConfigPath) (Config, error) {
+func loadConfig(cp ConfigPath) (*Config, error) {
 	if cp == nil {
 		cp = fp
 	}
@@ -95,7 +95,7 @@ func loadConfig(cp ConfigPath) (Config, error) {
 	}
 
 	beego.Debug("Loaded pipeline data", c)
-	return Config{
+	return &Config{
 		AssetCss: c.Css,
 		AssetJs:  c.Js,
 	}, nil
