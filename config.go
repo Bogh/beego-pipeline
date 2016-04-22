@@ -9,25 +9,37 @@ import (
 	"path/filepath"
 )
 
-var (
-	fp FilePath
+const (
+	AssetCss Asset = "css"
+	AssetJs        = "js"
 )
 
+var (
+	config Config
+)
+
+// Used for constants to define the asset type set
+type Asset string
+
+// Hold a map of asset types each containing a collection
 type Config map[Asset]Collection
 
-type config struct {
-	Css Collection
-	Js  Collection
+// // struct to hold different types of assets
+
+func (c *Config) GetAssetGroup(asset Asset, name string) (*Group, error) {
+	collection, ok := (*c)[asset]
+	if !ok {
+		return nil, ErrAssetNotFound
+	}
+
+	group, ok := collection[name]
+	if !ok {
+		return nil, ErrAssetNotFound
+	}
+	return &group, nil
 }
 
-type ConfigPath interface {
-	// returns file path to the conf file
-	Path() (string, error)
-}
-
-type FilePath string
-
-func (fp FilePath) Path() (string, error) {
+func getConfigPath() (string, error) {
 	fn := filepath.Join(beego.AppPath, "conf", "pipeline.json")
 	if !utils.FileExists(fn) {
 		beego.Debug("pipeline.json not found.")
@@ -36,29 +48,34 @@ func (fp FilePath) Path() (string, error) {
 	return fn, nil
 }
 
+// A map of asset groups by name
 type Collection map[string]Group
 
+// Keep configuration for an asset output
 type Group struct {
 	// Location inside the AppPath directory
 	// specify this in case the root of static folder is not the default "/static"
 	Root    string `json:",omitempty"`
 	Sources []string
 	Output  string
+
+	// Resulted file, default is the Output
+	Result string `json:"-"`
 }
 
 // Return absolute path for provided path, prepending AppPath and Root
-func (o *Group) Path(path string) string {
-	root := o.Root
+func (g *Group) Path(path string) string {
+	root := g.Root
 	if root == "" {
 		root = "/static"
 	}
 	return filepath.Join(beego.AppPath, root, path)
 }
 
-func (o *Group) SourcePaths() ([]string, error) {
+func (g *Group) SourcePaths() ([]string, error) {
 	p := []string{}
-	for _, pattern := range o.Sources {
-		matches, err := filepath.Glob(o.Path(pattern))
+	for _, pattern := range g.Sources {
+		matches, err := filepath.Glob(g.Path(pattern))
 		if err != nil {
 			return p, err
 		}
@@ -68,16 +85,20 @@ func (o *Group) SourcePaths() ([]string, error) {
 }
 
 // Normalized Output
-func (o *Group) OutputPath() string {
-	return o.Path(o.Output)
+func (g *Group) OutputPath() string {
+	return g.Path(g.Output)
+}
+
+// Determine the Result path and return the value
+// TODO: This method will calculate the version hash
+func (g *Group) ResultPath() string {
+	g.Result = g.Output
+	return g.Result
 }
 
 // find conf/pipeline.conf and load it
-func loadConfig(cp ConfigPath) (*Config, error) {
-	if cp == nil {
-		cp = fp
-	}
-	path, err := cp.Path()
+func loadConfig() (*Config, error) {
+	path, err := getConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -88,15 +109,19 @@ func loadConfig(cp ConfigPath) (*Config, error) {
 		return nil, err
 	}
 
-	c := config{}
+	c := struct {
+		Css Collection
+		Js  Collection
+	}{}
 	err = json.Unmarshal(data, &c)
 	if err != nil {
 		return nil, err
 	}
 
 	beego.Debug("Loaded pipeline data", c)
-	return &Config{
+	config := Config{
 		AssetCss: c.Css,
 		AssetJs:  c.Js,
-	}, nil
+	}
+	return &config, nil
 }

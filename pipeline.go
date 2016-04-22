@@ -1,47 +1,11 @@
 package pipeline
 
 import (
-	"errors"
 	"fmt"
 	"github.com/astaxie/beego"
 	"io"
 	"os"
 )
-
-const (
-	AssetCss Asset = iota
-	AssetJs
-)
-
-var (
-	compressors = make([]Compressor, 0)
-	compilers   = make([]Compiler, 0)
-
-	ErrNoCompiler = errors.New("No compiler found")
-)
-
-type Asset int
-
-type Compiler interface {
-	Match(Asset, string) bool
-	Compile(string) (io.Reader, error)
-}
-
-// Define compressor interface
-type Compressor interface {
-	Match(Asset) bool
-	// Should compress and concatenate the file in paths and save them in the
-	// output
-	Compress(io.Reader) (io.Reader, error)
-}
-
-func RegisterCompressor(c Compressor) {
-	compressors = append(compressors, c)
-}
-
-func RegisterCompiler(c Compiler) {
-	compilers = append(compilers, c)
-}
 
 type Processor struct {
 	Asset      Asset
@@ -67,12 +31,13 @@ func (p *Processor) Process() error {
 			continue
 		}
 
-		go p.WriteGroup(group.OutputPath(), r)
+		p.WriteGroup(group.OutputPath(), r)
 	}
 
 	return nil
 }
 
+// Write data from reader to the group file
 func (p *Processor) WriteGroup(path string, r io.Reader) {
 	oFile, err := os.Create(path)
 	if err != nil {
@@ -118,15 +83,6 @@ func (p *Processor) Compile(group Group) (io.Reader, error) {
 	return io.MultiReader(readers...), nil
 }
 
-func (p *Processor) GetCompiler(path string) Compiler {
-	for _, compiler := range compilers {
-		if compiler.Match(p.Asset, path) {
-			return compiler
-		}
-	}
-	return DefaultCompiler
-}
-
 // Accepts an io.Writer and returns an io.Reader
 func (p *Processor) Compress(in io.Reader) (io.Reader, error) {
 	compressor := p.GetCompressor()
@@ -143,15 +99,6 @@ func (p *Processor) Compress(in io.Reader) (io.Reader, error) {
 	return out, nil
 }
 
-func (p *Processor) GetCompressor() Compressor {
-	for _, compressor := range compressors {
-		if compressor.Match(p.Asset) {
-			return compressor
-		}
-	}
-	return nil
-}
-
 func (p *Processor) GetAsset() string {
 	switch p.Asset {
 	case AssetCss:
@@ -165,8 +112,8 @@ func (p *Processor) GetAsset() string {
 
 // Run compilers and compressors in this pipeline
 // TODO: make this concurrent using context
-func Execute(config *Config) error {
-	for asset, collection := range *config {
+func Execute() error {
+	for asset, collection := range config {
 		processor := NewProcessor(asset, collection)
 		processor.Process()
 	}
@@ -182,15 +129,15 @@ func Execute(config *Config) error {
 
 // TODO: handle any errors that can be handled different
 func appStartHook() error {
-	config, err := loadConfig(nil)
+	_, err := loadConfig()
 	if err != nil {
 		beego.Error(err)
 		return err
 	}
 
 	// execute pipeline
-	go Execute(config)
-	registerHelpers(config)
+	go Execute()
+	registerHelpers()
 	return nil
 }
 
