@@ -1,6 +1,6 @@
  ☐ Template functions for the generated assets
- ☐ Watch changes in groups and recompile
+ ☐ Watch changes in groups and recompile (cancel any current processing)
  ☐ Asset versioning
- ☐ Configuration of commands
+ ☐ Configuration of external commands
  ☐ Sass compiler
  ☐ Check for the commands

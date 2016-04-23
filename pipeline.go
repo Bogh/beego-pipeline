@@ -113,7 +113,7 @@ func (p *Processor) GetAsset() string {
 // Run compilers and compressors in this pipeline
 // TODO: make this concurrent using context
 func Execute() error {
-	for asset, collection := range config {
+	for asset, collection := range *config {
 		processor := NewProcessor(asset, collection)
 		processor.Process()
 	}
@@ -137,7 +137,7 @@ func appStartHook() error {
 
 	// execute pipeline
 	go Execute()
-	registerHelpers()
+	go registerHelpers()
 	return nil
 }
 

@@ -15,7 +15,7 @@ const (
 )
 
 var (
-	config Config
+	config *Config
 )
 
 // Used for constants to define the asset type set
@@ -37,6 +37,13 @@ func (c *Config) GetAssetGroup(asset Asset, name string) (*Group, error) {
 		return nil, ErrAssetNotFound
 	}
 	return &group, nil
+}
+
+func (c *Config) GetAssetTpl(asset Asset) string {
+	return map[Asset]string{
+		AssetCss: `<link href="%s">`,
+		AssetJs:  `<script src="%s"></script>`,
+	}[asset]
 }
 
 func getConfigPath() (string, error) {
@@ -64,18 +71,22 @@ type Group struct {
 }
 
 // Return absolute path for provided path, prepending AppPath and Root
-func (g *Group) Path(path string) string {
-	root := g.Root
-	if root == "" {
-		root = "/static"
+func (g *Group) AbsPath(path string) string {
+	return filepath.Join(beego.AppPath, g.RootedPath(path))
+}
+
+func (g *Group) RootedPath(paths ...string) string {
+	if g.Root == "" {
+		g.Root = "/static"
 	}
-	return filepath.Join(beego.AppPath, root, path)
+
+	return filepath.Join(append([]string{g.Root}, paths...)...)
 }
 
 func (g *Group) SourcePaths() ([]string, error) {
 	p := []string{}
 	for _, pattern := range g.Sources {
-		matches, err := filepath.Glob(g.Path(pattern))
+		matches, err := filepath.Glob(g.AbsPath(pattern))
 		if err != nil {
 			return p, err
 		}
@@ -86,13 +97,13 @@ func (g *Group) SourcePaths() ([]string, error) {
 
 // Normalized Output
 func (g *Group) OutputPath() string {
-	return g.Path(g.Output)
+	return g.AbsPath(g.Output)
 }
 
 // Determine the Result path and return the value
 // TODO: This method will calculate the version hash
 func (g *Group) ResultPath() string {
-	g.Result = g.Output
+	g.Result = g.RootedPath(g.Output)
 	return g.Result
 }
 
@@ -119,9 +130,9 @@ func loadConfig() (*Config, error) {
 	}
 
 	beego.Debug("Loaded pipeline data", c)
-	config := Config{
+	config = &Config{
 		AssetCss: c.Css,
 		AssetJs:  c.Js,
 	}
-	return &config, nil
+	return config, nil
 }

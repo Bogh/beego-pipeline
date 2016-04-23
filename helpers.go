@@ -6,10 +6,6 @@ import (
 	"html/template"
 )
 
-const (
-	linkTpl = `<link href="%s">`
-)
-
 func asset(asset Asset, name string) (out template.HTML, err error) {
 	// Find the asset
 	group, err := config.GetAssetGroup(asset, name)
@@ -23,7 +19,9 @@ func asset(asset Asset, name string) (out template.HTML, err error) {
 		return template.HTML(""), err
 	}
 
-	return template.HTML(fmt.Sprintf(linkTpl, group.ResultPath())), nil
+	tpl := config.GetAssetTpl(asset)
+
+	return template.HTML(fmt.Sprintf(tpl, group.ResultPath())), nil
 }
 
 func PipelineCss(name string) (template.HTML, error) {
