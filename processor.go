@@ -25,45 +25,60 @@ func NewProcessor(asset Asset, collection Collection) *Processor {
 
 // Watch files in this group for changes and recompile
 func (p *Processor) Watch() error {
+	// start watching groups
+	// for _, group := range p.Collection {
+	// 	// group.Watch(func(event fsnotify.Event) error {
+	// 	// 	beego.Debug("Group changed: ", event)
+	// 	// })
+	// }
 	return nil
 }
 
 func (p *Processor) Process() error {
 	// compile then compress
 	for _, group := range p.Collection {
-		compiled, err := p.Compile(group)
-		if err != nil {
-			beego.Error(err)
-			continue
+		if err := p.ProcessGroup(group); err != nil {
+			return err
 		}
-
-		r, err := p.Compress(compiled)
-		if err != nil {
-			beego.Error(err)
-			continue
-		}
-
-		p.WriteGroup(group.OutputPath(), r)
 	}
 
 	return nil
 }
 
+func (p *Processor) ProcessGroup(group Group) error {
+	compiled, err := p.Compile(group)
+	if err != nil {
+		beego.Error(err)
+		return err
+	}
+
+	r, err := p.Compress(compiled)
+	if err != nil {
+		beego.Error(err)
+		return err
+	}
+
+	p.WriteGroup(group.OutputPath(), r)
+	return nil
+}
+
 // Write data from reader to the group file
-func (p *Processor) WriteGroup(path string, r io.Reader) {
+func (p *Processor) WriteGroup(path string, r io.Reader) error {
 	oFile, err := os.Create(path)
 	if err != nil {
 		beego.Error(err)
-		return
+		return err
 	}
 	defer oFile.Close()
 
 	_, err = io.Copy(oFile, io.Reader(r))
 	if err != nil {
 		beego.Error(err)
-		return
+		return err
 	}
+
 	beego.Debug("Generated: ", path)
+	return nil
 }
 
 func (p *Processor) Compile(group Group) (io.Reader, error) {

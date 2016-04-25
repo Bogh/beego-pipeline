@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/astaxie/beego"
 	"github.com/astaxie/beego/utils"
+	"github.com/fsnotify/fsnotify"
 	"io/ioutil"
 	"path/filepath"
 )
@@ -15,19 +16,23 @@ const (
 )
 
 var (
-	config *Config
+	config  *Config
+	watcher *fsnotify.Watcher
 )
 
 // Used for constants to define the asset type set
 type Asset string
 
 // Hold a map of asset types each containing a collection
-type Config map[Asset]Collection
+type Config struct {
+	Collections map[Asset]Collection
+	Watcher     *fsnotify.Watcher
+}
 
-// // struct to hold different types of assets
+// struct to hold different types of assets
 
 func (c *Config) GetAssetGroup(asset Asset, name string) (*Group, error) {
-	collection, ok := (*c)[asset]
+	collection, ok := c.Collections[asset]
 	if !ok {
 		return nil, ErrAssetNotFound
 	}
@@ -129,10 +134,19 @@ func loadConfig() (*Config, error) {
 		return nil, err
 	}
 
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+
 	beego.Debug("Loaded pipeline data", c)
 	config = &Config{
-		AssetCss: c.Css,
-		AssetJs:  c.Js,
+		Collections: map[Asset]Collection{
+			AssetCss: c.Css,
+			AssetJs:  c.Js,
+		},
+		Watcher: watcher,
 	}
+
 	return config, nil
 }

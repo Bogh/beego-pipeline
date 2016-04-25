@@ -4,17 +4,6 @@ import (
 	"github.com/astaxie/beego"
 )
 
-// Run compilers and compressors in this pipeline
-// TODO: make this concurrent using context
-func Execute() error {
-	for asset, collection := range *config {
-		processor := NewProcessor(asset, collection)
-		processor.Process()
-	}
-
-	return nil
-}
-
 // TODO: handle any errors that can be handled different
 func registerPipeline() error {
 	_, err := loadConfig()
@@ -24,8 +13,13 @@ func registerPipeline() error {
 	}
 
 	// execute pipeline
-	go Execute()
-	go registerHelpers()
+	for asset, collection := range config.Collections {
+		processor := NewProcessor(asset, collection)
+		processor.Process()
+	}
+
+	return nil
+	registerHelpers()
 	return nil
 }
 
