@@ -10,15 +10,7 @@ import (
 	"path/filepath"
 )
 
-const (
-	AssetCss Asset = "css"
-	AssetJs        = "js"
-)
-
 var config *Config
-
-// Used for constants to define the asset type set
-type Asset string
 
 // Hold a map of asset types each containing a collection
 type Config struct {
@@ -38,7 +30,7 @@ func (c *Config) GetAssetGroup(asset Asset, name string) (*Group, error) {
 	if !ok {
 		return nil, ErrAssetNotFound
 	}
-	return &group, nil
+	return group, nil
 }
 
 func (c *Config) GetAssetTpl(asset Asset) string {
@@ -93,9 +85,8 @@ func (c *Config) forward(e fsnotify.Event) {
 
 			for _, p := range paths {
 				if p == e.Name {
-					// send even to the matched group
-					beego.Debug("Sending event to group: ", group.events)
-					group.events <- e
+					// send event to the matched group
+					group.triggerWatch(e)
 					continue
 				}
 			}
@@ -141,7 +132,7 @@ func loadConfig() (*Config, error) {
 
 	beego.Debug("Loaded pipeline data", c)
 	config = &Config{
-		Collections: NewCollections(c.Css, c.Js),
+		Collections: newCollections(c.Css, c.Js),
 		Watcher:     watcher,
 	}
 

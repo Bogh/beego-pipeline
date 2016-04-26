@@ -28,7 +28,7 @@ func (p *Processor) Watch() error {
 	beego.Debug("Start watching files for changes.")
 	// start watching groups
 	for _, group := range p.Collection {
-		go func(g Group) {
+		go func(g *Group) {
 			for {
 				select {
 				case event := <-g.events:
@@ -56,7 +56,7 @@ func (p *Processor) Process() error {
 	return nil
 }
 
-func (p *Processor) ProcessGroup(group Group) error {
+func (p *Processor) ProcessGroup(group *Group) error {
 	compiled, err := p.Compile(group)
 	if err != nil {
 		beego.Error(err)
@@ -92,7 +92,7 @@ func (p *Processor) WriteGroup(path string, r io.Reader) error {
 	return nil
 }
 
-func (p *Processor) Compile(group Group) (io.Reader, error) {
+func (p *Processor) Compile(group *Group) (io.Reader, error) {
 	// find compiler for each file in the group
 	paths, err := group.SourcePaths()
 	if err != nil {
@@ -115,7 +115,6 @@ func (p *Processor) Compile(group Group) (io.Reader, error) {
 		}
 
 		readers = append(readers, rc)
-		beego.Debug("Found compiler", compiler, "for path", path)
 	}
 
 	return io.MultiReader(readers...), nil
