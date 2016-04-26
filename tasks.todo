@@ -1,9 +1,10 @@
  ✔ Template functions for the generated assets @done (16-04-23 13:08)
- ☐ Watch changes in groups and recompile (cancel any current processing)
- ☐ Watch only on run mode = test
+ ✔ Watch changes in groups and recompile (cancel any current processing) @done (16-04-26 16:11)
+ ✔ Watch only on run mode = dev @done (16-04-26 17:05)
  ☐ Asset versioning
  ☐ Configuration of external commands
  ☐ Sass compiler
  ☐ Check if commands exist
  ☐ Check that an output file doesnt override a source file in a group
- ☐ Watch config file for changes and update configuration>
+ ☐ Write README.md usage
+

@@ -42,6 +42,10 @@ func (c *Config) GetAssetTpl(asset Asset) string {
 
 // Add all files to watcher
 func (c *Config) watches() error {
+	if beego.BConfig.RunMode != "dev" {
+		return nil
+	}
+
 	for _, collection := range c.Collections {
 		for _, group := range collection {
 			paths, err := group.SourcePaths()
