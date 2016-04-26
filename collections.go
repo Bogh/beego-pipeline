@@ -4,13 +4,22 @@ import (
 	"github.com/astaxie/beego"
 	"github.com/fsnotify/fsnotify"
 	"path/filepath"
+	"time"
 )
 
+const (
+	AssetCss Asset = "css"
+	AssetJs        = "js"
+)
+
+// Used for constants to define the asset type set
+type Asset string
+
 // A map of asset groups by name
-type Collection map[string]Group
+type Collection map[string]*Group
 
 // Init other group fields
-func NewCollection(c Collection) Collection {
+func newCollection(c Collection) Collection {
 	for i, group := range c {
 		group.events = make(chan fsnotify.Event)
 		c[i] = group
@@ -20,10 +29,10 @@ func NewCollection(c Collection) Collection {
 
 type Collections map[Asset]Collection
 
-func NewCollections(css Collection, js Collection) Collections {
+func newCollections(css Collection, js Collection) Collections {
 	return Collections{
-		AssetCss: NewCollection(css),
-		AssetJs:  NewCollection(js),
+		AssetCss: newCollection(css),
+		AssetJs:  newCollection(js),
 	}
 }
 
@@ -40,7 +49,8 @@ type Group struct {
 	Result string `json:"-"`
 
 	// Events channel
-	events chan fsnotify.Event `json:"-"`
+	events     chan fsnotify.Event `json:"-"`
+	eventTimer *time.Timer
 }
 
 // Return absolute path for provided path, prepending AppPath and Root
@@ -81,4 +91,17 @@ func (g *Group) OutputPath() string {
 func (g *Group) ResultPath() string {
 	g.Result = g.RootedPath(g.Output)
 	return g.Result
+}
+
+// sends the event to the events channel after waiting 500ms or cancel the time
+// if a new arrives
+// basically a debounce function, in case too many events are sent
+func (g *Group) triggerWatch(event fsnotify.Event) {
+	if g.eventTimer != nil {
+		g.eventTimer.Stop()
+	}
+
+	g.eventTimer = time.AfterFunc(500*time.Millisecond, func() {
+		g.events <- event
+	})
 }
