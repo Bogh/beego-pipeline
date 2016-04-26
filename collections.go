@@ -1,9 +1,11 @@
 package pipeline
 
 import (
+	"fmt"
 	"github.com/astaxie/beego"
 	"github.com/fsnotify/fsnotify"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -48,6 +50,9 @@ type Group struct {
 	// Resulted file, default is the Output
 	Result string `json:"-"`
 
+	// Version string represents buy a hash generated from the file contents
+	version string
+
 	// Events channel
 	events     chan fsnotify.Event `json:"-"`
 	eventTimer *time.Timer
@@ -83,11 +88,22 @@ func (g *Group) SourcePaths() ([]string, error) {
 
 // Normalized Output
 func (g *Group) OutputPath() string {
-	return g.AbsPath(g.Output)
+	return g.AbsPath(g.VersionedPath())
+}
+
+func (g *Group) VersionedPath() string {
+	path := g.Output
+	if beego.BConfig.RunMode != "dev" && g.version != "" {
+		dir := filepath.Dir(path)
+		ext := filepath.Ext(path)
+		base := strings.Replace(filepath.Base(path), ext, "", -1)
+
+		path = filepath.Join(dir, fmt.Sprintf("%s.%s%s", base, g.version, ext))
+	}
+	return path
 }
 
 // Determine the Result path and return the value
-// TODO: This method will calculate the version hash
 func (g *Group) ResultPath() string {
 	g.Result = g.RootedPath(g.Output)
 	return g.Result

@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"crypto/md5"
 	"fmt"
 	"github.com/astaxie/beego"
 	"io"
@@ -57,11 +58,15 @@ func (p *Processor) ProcessGroup(group *Group) error {
 		return err
 	}
 
-	r, err := p.Compress(compiled)
+	versionHash := md5.New()
+
+	r, err := p.Compress(io.TeeReader(compiled, versionHash))
 	if err != nil {
 		beego.Error(err)
 		return err
 	}
+
+	group.version = string(fmt.Sprintf("%x", versionHash.Sum(nil)[:8]))
 
 	p.WriteGroup(group.OutputPath(), r)
 	return nil
