@@ -18,7 +18,6 @@ func registerPipeline() error {
 		processor.Process()
 	}
 
-	return nil
 	registerHelpers()
 	return nil
 }

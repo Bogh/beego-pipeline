@@ -25,16 +25,27 @@ func NewProcessor(asset Asset, collection Collection) *Processor {
 
 // Watch files in this group for changes and recompile
 func (p *Processor) Watch() error {
+	beego.Debug("Start watching files for changes.")
 	// start watching groups
-	// for _, group := range p.Collection {
-	// 	// group.Watch(func(event fsnotify.Event) error {
-	// 	// 	beego.Debug("Group changed: ", event)
-	// 	// })
-	// }
+	for _, group := range p.Collection {
+		go func(g Group) {
+			for {
+				select {
+				case event := <-g.events:
+					beego.Debug("Group changed:", g, event)
+				case <-p.ctx.Done():
+					beego.Debug("Done context: ", g)
+				}
+			}
+		}(group)
+	}
 	return nil
 }
 
 func (p *Processor) Process() error {
+	// Start watching
+	p.Watch()
+
 	// compile then compress
 	for _, group := range p.Collection {
 		if err := p.ProcessGroup(group); err != nil {

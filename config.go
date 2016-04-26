@@ -15,18 +15,15 @@ const (
 	AssetJs        = "js"
 )
 
-var (
-	config  *Config
-	watcher *fsnotify.Watcher
-)
+var config *Config
 
 // Used for constants to define the asset type set
 type Asset string
 
 // Hold a map of asset types each containing a collection
 type Config struct {
-	Collections map[Asset]Collection
-	Watcher     *fsnotify.Watcher
+	Collections
+	Watcher *fsnotify.Watcher
 }
 
 // struct to hold different types of assets
@@ -51,6 +48,61 @@ func (c *Config) GetAssetTpl(asset Asset) string {
 	}[asset]
 }
 
+// Add all files to watcher
+func (c *Config) watches() error {
+	for _, collection := range c.Collections {
+		for _, group := range collection {
+			paths, err := group.SourcePaths()
+			if err != nil {
+				beego.Error("Error adding watches.", err)
+				return err
+			}
+
+			for _, path := range paths {
+				c.Watcher.Add(path)
+			}
+		}
+	}
+
+	go c.listen()
+	return nil
+}
+
+// wait for file changes
+func (c *Config) listen() {
+	for {
+		select {
+		case e := <-c.Watcher.Events:
+			// identify the groups that have been changed and forward the event
+			beego.Debug("File changed event: ", e)
+			c.forward(e)
+		case err := <-c.Watcher.Errors:
+			beego.Debug("Watcher error:", err)
+		}
+	}
+}
+
+func (c *Config) forward(e fsnotify.Event) {
+	for _, collection := range c.Collections {
+		for _, group := range collection {
+			paths, err := group.SourcePaths()
+			if err != nil {
+				beego.Error("Error getting group paths:", err)
+				return
+			}
+
+			for _, p := range paths {
+				if p == e.Name {
+					// send even to the matched group
+					beego.Debug("Sending event to group: ", group.events)
+					group.events <- e
+					continue
+				}
+			}
+		}
+	}
+}
+
 func getConfigPath() (string, error) {
 	fn := filepath.Join(beego.AppPath, "conf", "pipeline.json")
 	if !utils.FileExists(fn) {
@@ -58,58 +110,6 @@ func getConfigPath() (string, error) {
 		return "", errors.New("File does not exist")
 	}
 	return fn, nil
-}
-
-// A map of asset groups by name
-type Collection map[string]Group
-
-// Keep configuration for an asset output
-type Group struct {
-	// Location inside the AppPath directory
-	// specify this in case the root of static folder is not the default "/static"
-	Root    string `json:",omitempty"`
-	Sources []string
-	Output  string
-
-	// Resulted file, default is the Output
-	Result string `json:"-"`
-}
-
-// Return absolute path for provided path, prepending AppPath and Root
-func (g *Group) AbsPath(path string) string {
-	return filepath.Join(beego.AppPath, g.RootedPath(path))
-}
-
-func (g *Group) RootedPath(paths ...string) string {
-	if g.Root == "" {
-		g.Root = "/static"
-	}
-
-	return filepath.Join(append([]string{g.Root}, paths...)...)
-}
-
-func (g *Group) SourcePaths() ([]string, error) {
-	p := []string{}
-	for _, pattern := range g.Sources {
-		matches, err := filepath.Glob(g.AbsPath(pattern))
-		if err != nil {
-			return p, err
-		}
-		p = append(p, matches...)
-	}
-	return p, nil
-}
-
-// Normalized Output
-func (g *Group) OutputPath() string {
-	return g.AbsPath(g.Output)
-}
-
-// Determine the Result path and return the value
-// TODO: This method will calculate the version hash
-func (g *Group) ResultPath() string {
-	g.Result = g.RootedPath(g.Output)
-	return g.Result
 }
 
 // find conf/pipeline.conf and load it
@@ -141,12 +141,11 @@ func loadConfig() (*Config, error) {
 
 	beego.Debug("Loaded pipeline data", c)
 	config = &Config{
-		Collections: map[Asset]Collection{
-			AssetCss: c.Css,
-			AssetJs:  c.Js,
-		},
-		Watcher: watcher,
+		Collections: NewCollections(c.Css, c.Js),
+		Watcher:     watcher,
 	}
+
+	config.watches()
 
 	return config, nil
 }
