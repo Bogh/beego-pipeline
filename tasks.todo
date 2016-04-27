@@ -4,6 +4,8 @@
  ✔ Asset versioning @done (16-04-27 09:07)
  ✔ Configuration of external commands @done (16-04-27 16:19)
  ☐ Sass compiler
+ ☐ TypeScript compiler
+ ☐ Do not compress if in debug mode
  ☐ Check if commands exist
  ☐ Check that an output file doesnt override a source file in a group
  ☐ Write README.md usage
