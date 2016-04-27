@@ -21,7 +21,7 @@ beego application. Example usage:
 {
   "css": {
     "base": {
-      "root": "", // Defaults to `static/`
+      "root": "",
       "sources": [
         "css/base.css",
         "css/mixins.css"
