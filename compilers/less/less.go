@@ -1,9 +1,9 @@
 package less
 
 import (
+	"github.com/astaxie/beego"
 	"github.com/bogh/beego-pipeline"
 	"io"
-	"os/exec"
 	"strings"
 )
 
@@ -12,7 +12,9 @@ type LessCompiler struct {
 }
 
 func NewLessCompiler() *LessCompiler {
-	return &LessCompiler{pipeline.NewExecutor()}
+	path := beego.AppConfig.DefaultString("pipeline.command.less", "/usr/local/bin/lessc")
+	args := beego.AppConfig.DefaultString("pipeline.command.less.arguments", "")
+	return &LessCompiler{pipeline.NewExecutor(path, args)}
 }
 
 func (l *LessCompiler) Match(asset pipeline.Asset, filepath string) bool {
@@ -22,8 +24,7 @@ func (l *LessCompiler) Match(asset pipeline.Asset, filepath string) bool {
 
 func (l *LessCompiler) Compile(filepath string) (io.Reader, error) {
 	// start command and pipe the data through it
-	cmd := exec.Command("/usr/local/bin/lessc", filepath)
-	return l.Executor.Pipe(cmd, nil)
+	return l.Executor.Pipe(l.BuildCmd(filepath), nil)
 }
 
 func (l *LessCompiler) String() string {
@@ -31,5 +32,5 @@ func (l *LessCompiler) String() string {
 }
 
 func init() {
-	pipeline.RegisterCompiler(&LessCompiler{})
+	pipeline.RegisterCompiler(NewLessCompiler())
 }

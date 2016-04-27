@@ -1,9 +1,9 @@
 package yuglify
 
 import (
+	"github.com/astaxie/beego"
 	"github.com/bogh/beego-pipeline"
 	"io"
-	"os/exec"
 )
 
 // TODO: allow for customization of command
@@ -13,7 +13,12 @@ type YuglifyCompressor struct {
 }
 
 func NewYuglifyCompressor(asset pipeline.Asset) *YuglifyCompressor {
-	return &YuglifyCompressor{pipeline.NewExecutor(), asset}
+	path := beego.AppConfig.DefaultString(
+		"pipeline.command.yuglify",
+		"/usr/local/bin/yuglify",
+	)
+	args := beego.AppConfig.DefaultString("pipeline.command.yuglify.arguments", "")
+	return &YuglifyCompressor{pipeline.NewExecutor(path, args), asset}
 }
 
 func (y *YuglifyCompressor) Match(pipeline.Asset) bool {
@@ -22,14 +27,7 @@ func (y *YuglifyCompressor) Match(pipeline.Asset) bool {
 
 func (y *YuglifyCompressor) Compress(r io.Reader) (io.Reader, error) {
 	// start command and pipe the data through it
-	cmdArgs := []string{
-		"--terminal",
-		"--type", "css",
-	}
-	stdout, err := y.Executor.Pipe(
-		exec.Command("/usr/local/bin/yuglify", cmdArgs...),
-		r,
-	)
+	stdout, err := y.Pipe(y.BuildCmd("--terminal", "--type", string(y.asset)), r)
 	if err != nil {
 		return nil, err
 	}

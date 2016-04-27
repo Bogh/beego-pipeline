@@ -7,10 +7,18 @@ import (
 	"os/exec"
 )
 
-type Executor struct{}
+type Executor struct {
+	CmdPath string
+	CmdArgs string
+}
 
-func NewExecutor() *Executor {
-	return &Executor{}
+func NewExecutor(path, args string) *Executor {
+	return &Executor{path, args}
+}
+
+func (e *Executor) BuildCmd(extraArgs ...string) *exec.Cmd {
+	args := append(append([]string{}, e.CmdArgs), extraArgs...)
+	return exec.Command(e.CmdPath, args...)
 }
 
 func (e *Executor) Pipe(cmd *exec.Cmd, r io.Reader) (io.Reader, error) {

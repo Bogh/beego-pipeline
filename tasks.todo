@@ -1,8 +1,8 @@
  ✔ Template functions for the generated assets @done (16-04-23 13:08)
  ✔ Watch changes in groups and recompile (cancel any current processing) @done (16-04-26 16:11)
  ✔ Watch only on run mode = dev @done (16-04-26 17:05)
- ☐ Asset versioning
- ☐ Configuration of external commands
+ ✔ Asset versioning @done (16-04-27 09:07)
+ ✔ Configuration of external commands @done (16-04-27 16:19)
  ☐ Sass compiler
  ☐ Check if commands exist
  ☐ Check that an output file doesnt override a source file in a group
