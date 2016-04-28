@@ -5,8 +5,8 @@
  ✔ Configuration of external commands @done (16-04-27 16:19)
  ☐ Sass compiler
  ☐ TypeScript compiler
- ☐ Do not compress if in debug mode
+ ✔ Do not compress if in debug mode @done (16-04-28 11:08)
  ☐ Check if commands exist
- ☐ Check that an output file doesnt override a source file in a group
- ☐ Write README.md usage
-
+ ✔ Check that an output file doesnt override a source file in a group @done (16-04-28 11:08)
+ ✔ Write README.md usage @done (16-04-28 11:31)
+ ☐ Add separated methods to generate uri and abs path
