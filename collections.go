@@ -104,9 +104,29 @@ func (g *Group) VersionedPath() string {
 }
 
 // Determine the Result path and return the value
+// TODO: This method will calculate the version hash
 func (g *Group) ResultPath() string {
-	g.Result = g.RootedPath(g.Output)
+	g.Result = g.RootedPath(g.VersionedPath())
 	return g.Result
+}
+
+// Returns a path for a source that will change the extension to match the asset
+// If the path is the same error is returned. File shouldn't be overriden
+func (g *Group) NormalizeForAsset(path string, asset Asset) (string, error) {
+	var nPath string
+
+	ext := filepath.Ext(path)
+	rext := "." + string(asset)
+	if ext == "" {
+		nPath = path + rext
+	} else {
+		nPath = strings.Replace(path, ext, rext, -1)
+	}
+
+	if path == nPath {
+		return "", &ErrOverridingPath{path}
+	}
+	return nPath, nil
 }
 
 // sends the event to the events channel after waiting 500ms or cancel the time

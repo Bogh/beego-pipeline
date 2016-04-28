@@ -52,10 +52,14 @@ func (p *Processor) Process() error {
 }
 
 func (p *Processor) ProcessGroup(group *Group) error {
-	compiled, err := p.Compile(group)
+	compiled, err := p.Compile(group, isDev())
 	if err != nil {
 		beego.Error(err)
 		return err
+	}
+
+	if isDev() {
+		return nil
 	}
 
 	versionHash := md5.New()
@@ -68,12 +72,12 @@ func (p *Processor) ProcessGroup(group *Group) error {
 
 	group.version = string(fmt.Sprintf("%x", versionHash.Sum(nil)[:8]))
 
-	p.WriteGroup(group.OutputPath(), r)
+	p.Write(group.OutputPath(), r)
 	return nil
 }
 
 // Write data from reader to the group file
-func (p *Processor) WriteGroup(path string, r io.Reader) error {
+func (p *Processor) Write(path string, r io.Reader) error {
 	oFile, err := os.Create(path)
 	if err != nil {
 		beego.Error(err)
@@ -81,7 +85,7 @@ func (p *Processor) WriteGroup(path string, r io.Reader) error {
 	}
 	defer oFile.Close()
 
-	_, err = io.Copy(oFile, io.Reader(r))
+	_, err = io.Copy(oFile, r)
 	if err != nil {
 		beego.Error(err)
 		return err
@@ -91,7 +95,8 @@ func (p *Processor) WriteGroup(path string, r io.Reader) error {
 	return nil
 }
 
-func (p *Processor) Compile(group *Group) (io.Reader, error) {
+// If `write` is true then save each file to it's own path
+func (p *Processor) Compile(group *Group, write bool) (io.Reader, error) {
 	// find compiler for each file in the group
 	paths, err := group.SourcePaths()
 	if err != nil {
@@ -111,6 +116,20 @@ func (p *Processor) Compile(group *Group) (io.Reader, error) {
 		if err != nil {
 			beego.Debug("Error compiling ", path, ":", err)
 			return nil, err
+		}
+
+		if write {
+			// write to the file
+			nPath, err := group.NormalizeForAsset(path, p.Asset)
+			if err != nil {
+				if _, ok := err.(*ErrOverridingPath); ok {
+					beego.Debug(err)
+					continue
+				}
+				return nil, err
+			}
+
+			p.Write(nPath, rc)
 		}
 
 		readers = append(readers, rc)

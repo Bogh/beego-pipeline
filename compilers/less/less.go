@@ -17,6 +17,10 @@ func NewLessCompiler() *LessCompiler {
 	return &LessCompiler{pipeline.NewExecutor(path, args)}
 }
 
+func (l *LessCompiler) RequireCompile() bool {
+	return true
+}
+
 func (l *LessCompiler) Match(asset pipeline.Asset, filepath string) bool {
 	return asset == pipeline.AssetCss &&
 		strings.HasSuffix(filepath, ".less")

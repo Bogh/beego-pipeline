@@ -22,6 +22,10 @@ func registerPipeline() error {
 	return nil
 }
 
+func isDev() bool {
+	return beego.BConfig.RunMode == "dev"
+}
+
 func init() {
 	beego.AddAPPStartHook(registerPipeline)
 }

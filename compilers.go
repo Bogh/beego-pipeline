@@ -2,12 +2,20 @@ package pipeline
 
 import (
 	"io"
+	"os"
 )
 
-var compilers = make([]Compiler, 0)
+var (
+	compilers       = make([]Compiler, 0)
+	DefaultCompiler = new(NopCompiler)
+)
 
 type Compiler interface {
 	Match(Asset, string) bool
+
+	// Return true if the asset must be compiled in order to work
+	RequireCompile() bool
+
 	Compile(string) (io.Reader, error)
 }
 
@@ -22,4 +30,24 @@ func (p *Processor) GetCompiler(path string) Compiler {
 		}
 	}
 	return DefaultCompiler
+}
+
+type NopCompiler struct{}
+
+func (n *NopCompiler) RequireCompile() bool {
+	return false
+}
+
+func (n *NopCompiler) Match(asset Asset, filepath string) bool {
+	return true
+}
+
+func (n *NopCompiler) Compile(filepath string) (io.Reader, error) {
+	// read the file and return an io
+	f, err := os.Open(filepath)
+	return &AutoCloseReader{f}, err
+}
+
+func (n *NopCompiler) String() string {
+	return "Nop Compiler"
 }
