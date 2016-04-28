@@ -47,9 +47,6 @@ type Group struct {
 	sourcePaths []string
 	Output      string
 
-	// Resulted file, default is the Output
-	Result string `json:"-"`
-
 	// Version string represents buy a hash generated from the file contents
 	version string
 
@@ -105,33 +102,54 @@ func (g *Group) VersionedPath() string {
 
 // Determine the Result path and return the value
 // TODO: This method will calculate the version hash
-func (g *Group) ResultPath() string {
-	g.Result = g.RootedPath(g.VersionedPath())
-	return g.Result
+func (g *Group) ResultPaths(asset Asset) ([]string, error) {
+	if isDev() {
+		// return sources
+		paths, err := g.SourcePaths()
+		if err != nil {
+			return nil, err
+		}
+		paths, err = g.NormAssets(paths, asset)
+		if err != nil {
+			return nil, err
+		}
+		result := make([]string, 0, len(paths))
+		for _, path := range paths {
+			result = append(result, g.RootedPath(path))
+		}
+		return result, nil
+	}
+
+	return []string{g.RootedPath(g.VersionedPath())}, nil
 }
 
 // Returns a path for a source that will change the extension to match the asset
 // If the path is the same error is returned. File shouldn't be overriden
-func (g *Group) NormalizeForAsset(path string, asset Asset) (string, error) {
-	var nPath string
-
+func (g *Group) NormAsset(path string, asset Asset) string {
 	ext := filepath.Ext(path)
 	rext := "." + string(asset)
 	if ext == "" {
-		nPath = path + rext
-	} else {
-		nPath = strings.Replace(path, ext, rext, -1)
+		return path + rext
 	}
+	return strings.Replace(path, ext, rext, -1)
+}
 
-	if path == nPath {
-		return "", &ErrOverridingPath{path}
+func (g *Group) NormAssets(paths []string, asset Asset) ([]string, error) {
+	normalized := make([]string, 0, len(paths))
+	for _, path := range paths {
+		path := g.NormAsset(path, asset)
+		path, err := filepath.Rel(filepath.Join(beego.AppPath, g.Root), path)
+		if err != nil {
+			return nil, err
+		}
+		normalized = append(normalized, path)
 	}
-	return nPath, nil
+	return normalized, nil
 }
 
 // sends the event to the events channel after waiting 500ms or cancel the time
 // if a new arrives
-// basically a debounce function, in case too many events are sent
+// basically a debounce, in case too many events are sent
 func (g *Group) triggerWatch(event fsnotify.Event) {
 	if g.eventTimer != nil {
 		g.eventTimer.Stop()

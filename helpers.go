@@ -6,7 +6,9 @@ import (
 	"html/template"
 )
 
-func asset(asset Asset, name string) (out template.HTML, err error) {
+func asset(asset Asset, name string) (template.HTML, error) {
+	var html string
+
 	// Find the asset
 	group, err := config.GetAssetGroup(asset, name)
 	if err != nil {
@@ -21,7 +23,14 @@ func asset(asset Asset, name string) (out template.HTML, err error) {
 
 	tpl := config.GetAssetTpl(asset)
 
-	return template.HTML(fmt.Sprintf(tpl, group.ResultPath())), nil
+	paths, err := group.ResultPaths(asset)
+	if err != nil {
+		return template.HTML(""), err
+	}
+	for _, path := range paths {
+		html += fmt.Sprintf(tpl, path) + "\n"
+	}
+	return template.HTML(html), nil
 }
 
 func PipelineCss(name string) (template.HTML, error) {

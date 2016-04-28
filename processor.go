@@ -112,6 +112,10 @@ func (p *Processor) Compile(group *Group, write bool) (io.Reader, error) {
 			return nil, fmt.Errorf("Compiler not found for asset: %s (%s)", path, p.GetAsset())
 		}
 
+		if write && !compiler.RequireCompile() {
+			continue
+		}
+
 		rc, err := compiler.Compile(path)
 		if err != nil {
 			beego.Debug("Error compiling ", path, ":", err)
@@ -120,13 +124,9 @@ func (p *Processor) Compile(group *Group, write bool) (io.Reader, error) {
 
 		if write {
 			// write to the file
-			nPath, err := group.NormalizeForAsset(path, p.Asset)
-			if err != nil {
-				if _, ok := err.(*ErrOverridingPath); ok {
-					beego.Debug(err)
-					continue
-				}
-				return nil, err
+			nPath := group.NormAsset(path, p.Asset)
+			if path == nPath {
+				return nil, &ErrOverridingPath{path}
 			}
 
 			p.Write(nPath, rc)

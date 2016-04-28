@@ -30,12 +30,9 @@ func (e *Executor) Pipe(cmd *exec.Cmd, r io.Reader) (io.Reader, error) {
 
 		go func(command string) {
 			defer stdin.Close()
-			var buf bytes.Buffer
-			tr := io.TeeReader(r, &buf)
-			_, err = io.Copy(stdin, tr)
+			_, err = io.Copy(stdin, r)
 			if err != nil {
 				beego.Error(command, err)
-				beego.Debug("Read data:", buf.String())
 			}
 		}(cmd.Path)
 	}
